@@ -1,6 +1,15 @@
 #include <Time.h>
 #include <TimeAlarms.h>
 
+#include <Wire.h>
+#include <SeeedOLED.h>
+
+#include "DHT.h"
+#define DHTPIN 3       //D3 on breakboard
+
+#define DHTTYPE DHT11   // DHT 11 
+
+DHT dht(DHTPIN, DHTTYPE);
 
 #define BUTTON 2      //D2 on breakboard
 
@@ -19,6 +28,16 @@ AlarmId id;
 void setup() {
 
   Serial.begin(9600);
+
+  Wire.begin();
+
+  dht.begin(); // initialize temp and humidity sensor
+  
+  SeeedOled.init();  //initialze SEEED OLED display
+
+  SeeedOled.clearDisplay();          //clear the screen and set start position to top left corner
+  SeeedOled.setNormalDisplay();      //Set display to normal mode (i.e non-inverse mode)
+  SeeedOled.setPageMode();   
 
   pinMode(BUTTON, INPUT); // initialize the pushbutton pin as an input:
   
@@ -40,9 +59,26 @@ void loop() {
       watering();
   }
 
-  digitalClockDisplay();
+  displayTimeLeftBeforeWatering();
 
-  Alarm.delay(100); // wait a bit
+  float temp_hum_val[2] = {0};
+
+  if(!dht.readTempAndHumidity(temp_hum_val)){
+
+    SeeedOled.setTextXY(5, 0);         //Set the cursor to Xth Page, Yth Column
+    SeeedOled.putString("Temp: "); 
+    SeeedOled.putFloat(temp_hum_val[1]);
+    SeeedOled.putString("C");
+  
+    SeeedOled.setTextXY(6, 0);
+    SeeedOled.putString("Humidite: "); 
+    SeeedOled.putFloat(temp_hum_val[0]);
+    SeeedOled.putString("%");
+  } else {
+     Serial.println("Failed to get temprature and humidity value.");
+  }
+
+  Alarm.delay(500); // wait a bit
 }
 
 void watering() {
@@ -57,19 +93,47 @@ void watering() {
 }
 
 time_t time;
-void digitalClockDisplay() {
+void displayTimeLeftBeforeWatering() {
   // digital clock display of the time
 
   time = DAY - now();
+  
+  printOnSerialPort();
+
+  printOnOled();
+
+}
+
+void printOnSerialPort() {
   Serial.print(hour(time));
-  printDigits(minute(time));
-  printDigits(second(time));
+  printDigitsSerial(minute(time));
+  printDigitsSerial(second(time));
   Serial.println();
 }
 
-void printDigits(int digits) {
+void printOnOled() {
+  SeeedOled.setTextXY(0, 0);
+  SeeedOled.putString("Demarrage dans");
+  SeeedOled.setTextXY(1, 1);
+  printDigitsOled(hour(time));
+  SeeedOled.putString(" heures");
+  SeeedOled.setTextXY(2, 1);
+  printDigitsOled(minute(time));
+  SeeedOled.putString(" minutes");
+  SeeedOled.setTextXY(3, 1);
+  printDigitsOled(second(time));
+  SeeedOled.putString(" secondes");
+}
+
+void printDigitsSerial(int digits) {
   Serial.print(":");
   if (digits < 10)
     Serial.print('0');
   Serial.print(digits);
+}
+
+void printDigitsOled(int digits) {
+  if (digits < 10)
+    SeeedOled.putNumber(0);
+  SeeedOled.putNumber(digits);
 }
