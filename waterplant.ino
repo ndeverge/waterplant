@@ -8,10 +8,6 @@
 #include "Arduino.h"
 #include "SI114X.h"
 
-#define BUTTON 2      //D2 on breakboard
-
-int buttonState = 0;         // variable for reading the pushbutton status
-
 #define DHTPIN 3       //D3 on breakboard
 
 #define DHTTYPE DHT11   // DHT 11 
@@ -62,7 +58,6 @@ void setup()
 
     pinMode(RELAYPIN, OUTPUT);
     pinMode(MOISTUREPIN, INPUT);
-    pinMode(BUTTON, INPUT); // initialize the pushbutton pin as an input:
 
     while (!SI1145.Begin()) {
       Serial.println("Si1145 is not ready!");
@@ -82,9 +77,6 @@ void loop()
     int moisture = 0;
     // Reading temperature or humidity takes about 250 milliseconds!
     // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-
-    // read the state of the pushbutton value:
-    buttonState = digitalRead(BUTTON);
     
     if(!dht.readTempAndHumidity(temp_hum_val)){
 
@@ -133,17 +125,6 @@ void loop()
           digitalWrite(RELAYPIN, HIGH);
         } else {
           digitalWrite(RELAYPIN, LOW);
-        }
-
-        // check if the pushbutton is pressed.
-        // if it is, the buttonState is HIGH:
-        if (buttonState == HIGH) {
-            // turn pump on:
-            digitalWrite(RELAYPIN, HIGH);
-        }
-        else {
-            // turn pump off:
-            digitalWrite(RELAYPIN, LOW);
         }
         
     }
