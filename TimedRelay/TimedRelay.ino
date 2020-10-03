@@ -23,19 +23,22 @@ DHT dht(DHTPIN, DHTTYPE);
 #define RELAY_1 4  //D4 on breakboard
 #define RELAY_2 5  // see example at https://wiki.seeedstudio.com/Grove-2-Channel_SPDT_Relay/
 
+#define SECOND 1
+
 #define MINUTE 60
 
 #define HOUR 60*MINUTE
 
 #define DAY 24UL*HOUR
 
-#define WATERING_DURATION 10*MINUTE
+#define WATERING_DURATION 5*MINUTE
 
-#define TRANSFER_DURATION 1*MINUTE
+#define TRANSFER_DURATION 5*MINUTE
 
 int buttonState_1 = 0;         // variable for reading the pushbutton status
 int buttonState_2 = 0;
 short watering = 0;
+short transfering = 0;
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -61,7 +64,9 @@ void setup() {
   
   pinMode(MOISTUREPIN, INPUT);
 
-  Alarm.timerRepeat(DAY, startWatering); // called once after XXX seconds 
+  Alarm.timerRepeat(DAY, scheduledWatering); 
+
+  Alarm.timerRepeat(SECOND, displayInfos); 
 }
 
 // the loop function runs over and over again forever
@@ -73,14 +78,22 @@ void loop() {
 
   // check if the pushbutton is pressed.
   // if it is, the buttonState is HIGH:
-  if (buttonState_1 == HIGH) {
+  if (buttonState_1 == HIGH && watering == 1){
+    stopWatering();
+  } else if (buttonState_1 == HIGH) {
       startWatering();
   }
 
-  if (buttonState_2 == HIGH) {
+  if (buttonState_2 == HIGH && transfering == 1){
+    stopTransfer();
+  } else if (buttonState_2 == HIGH) {
     startTransfer();
   } 
 
+  Alarm.delay(300); // wait a bit
+}
+
+void displayInfos() {
   if (watering == 0) {
     displayTimeLeftBeforeWatering();
   } else {
@@ -90,8 +103,6 @@ void loop() {
   displayTempAndHumidity();
 
   displayMoisture();
-
-  Alarm.delay(500); // wait a bit
 }
 
 void scheduledWatering() {
@@ -122,16 +133,20 @@ void stopWatering() {
 }
 
 void startTransfer() {
-  Serial.println("Start transfer");
-  digitalWrite(RELAY_2, HIGH);   // turn the RELAY on (HIGH is the voltage level)
-
-  Alarm.timerOnce(TRANSFER_DURATION, stopTransfer);
+  if (transfering == 0) {
+    Serial.println("Start transfer");
+    transfering = 1;
+    digitalWrite(RELAY_2, HIGH);   // turn the RELAY on (HIGH is the voltage level)
+  
+    Alarm.timerOnce(TRANSFER_DURATION, stopTransfer);
+  }
 }
 
 void stopTransfer() {
   Serial.println("Stopping transfer");
   
   digitalWrite(RELAY_2, LOW);   // turn off the RELAY
+  transfering = 0;
 }
 
 void displayTempAndHumidity() {
